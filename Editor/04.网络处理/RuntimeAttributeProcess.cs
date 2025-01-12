@@ -100,7 +100,16 @@ namespace JFramework.Editor
         /// <param name="failed"></param>
         private static void ProcessAssembly(AssemblyDefinition assembly, IAssemblyResolver resolver, Logger logger, Writer writer, Reader reader, ref bool failed)
         {
-            var assemblyRef = assembly.MainModule.AssemblyReferences.FirstOrDefault(reference => reference.Name == Const.ASSEMBLY);
+            AssemblyNameReference assemblyRef = null;
+            foreach (var reference in assembly.MainModule.AssemblyReferences)
+            {
+                if (reference.Name == Const.ASSEMBLY)
+                {
+                    assemblyRef = reference;
+                    break;
+                }
+            }
+
             if (assemblyRef != null)
             {
                 var assemblyDef = resolver.Resolve(assemblyRef);
@@ -131,10 +140,13 @@ namespace JFramework.Editor
         private static bool ProcessCustomCode(AssemblyDefinition assembly, AssemblyDefinition assemblyDef, Writer writer, Reader reader, ref bool failed)
         {
             var changed = false;
-            foreach (var td in assemblyDef.MainModule.Types.Where(td => td.IsAbstract && td.IsSealed))
+            foreach (var td in assemblyDef.MainModule.Types)
             {
-                changed |= ProcessWriter(assembly, td, writer);
-                changed |= ProcessReader(assembly, td, reader);
+                if (td.IsAbstract && td.IsSealed)
+                {
+                    changed |= ProcessWriter(assembly, td, writer);
+                    changed |= ProcessReader(assembly, td, reader);
+                }
             }
 
             foreach (var td in assemblyDef.MainModule.Types)

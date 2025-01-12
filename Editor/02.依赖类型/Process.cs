@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using JFramework.Net;
 using Mono.Cecil;
 using UnityEngine;
@@ -41,12 +40,15 @@ namespace JFramework.Editor
             try
             {
                 this.assembly = assembly;
-                
-                if (assembly.MainModule.GetTypes().Any(type => type.Namespace == Const.GEN_TYPE && type.Name == Const.GEN_NAME))
+
+                foreach (var type in assembly.MainModule.GetTypes())
                 {
-                    return true;
+                    if (type.Namespace == Const.GEN_TYPE && type.Name == Const.GEN_NAME)
+                    {
+                        return true;
+                    }
                 }
-                
+
                 access = new SyncVarAccess();
                 module = new Module(assembly, logger, ref failed);
                 process = new TypeDefinition(Const.GEN_TYPE, Const.GEN_NAME, Const.GEN_ATTRS, module.Import<object>());

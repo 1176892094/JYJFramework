@@ -9,7 +9,6 @@
 // # Description: This is an automatically generated comment.
 // *********************************************************************************
 
-using System.Linq;
 using System.Reflection;
 using Mono.Cecil;
 
@@ -33,7 +32,17 @@ namespace JFramework.Editor
 
         public ReflectionImporter(ModuleDefinition module) : base(module)
         {
-            fixedCoreLib = module.AssemblyReferences.FirstOrDefault(assembly => Equals(assembly.Name));
+            AssemblyNameReference first = null;
+            foreach (var assembly in module.AssemblyReferences)
+            {
+                if (Equals(assembly.Name))
+                {
+                    first = assembly;
+                    break;
+                }
+            }
+
+            fixedCoreLib = first;
         }
 
         public override AssemblyNameReference ImportReference(AssemblyName name)

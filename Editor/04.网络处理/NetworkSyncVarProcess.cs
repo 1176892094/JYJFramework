@@ -11,7 +11,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using JFramework.Net;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -19,6 +18,8 @@ using UnityEngine;
 
 namespace JFramework.Editor
 {
+    using FieldDefinitionPair = KeyValuePair<List<FieldDefinition>, Dictionary<FieldDefinition, FieldDefinition>>;
+
     internal class SyncVarProcess
     {
         private readonly Logger logger;
@@ -46,9 +47,13 @@ namespace JFramework.Editor
             MethodReference hookMethodRef;
             if (hookMethod.DeclaringType.HasGenericParameters)
             {
-                var instanceType =
-                    hookMethod.DeclaringType.MakeGenericInstanceType(hookMethod.DeclaringType.GenericParameters.Cast<TypeReference>()
-                        .ToArray());
+                var param = new TypeReference[hookMethod.DeclaringType.GenericParameters.Count];
+                for (int i = 0; i < param.Length; i++)
+                {
+                    param[i] = hookMethod.DeclaringType.GenericParameters[i];
+                }
+
+                var instanceType = hookMethod.DeclaringType.MakeGenericInstanceType(param);
                 hookMethodRef = hookMethod.MakeHostInstanceGeneric(hookMethod.Module, instanceType);
             }
             else
@@ -102,7 +107,14 @@ namespace JFramework.Editor
         {
             var methods = td.GetMethods(hookMethod);
 
-            var fixMethods = new List<MethodDefinition>(methods.Where(method => method.Parameters.Count == 2));
+            var fixMethods = new List<MethodDefinition>();
+            foreach (var method in methods)
+            {
+                if (method.Parameters.Count == 2)
+                {
+                    fixMethods.Add(method);
+                }
+            }
 
             if (fixMethods.Count == 0)
             {
@@ -111,9 +123,12 @@ namespace JFramework.Editor
                 return null;
             }
 
-            foreach (var method in fixMethods.Where(method => MatchesParameters(syncVar, method)))
+            foreach (var method in fixMethods)
             {
-                return method;
+                if (MatchesParameters(syncVar, method))
+                {
+                    return method;
+                }
             }
 
             logger.Error($"参数类型错误 {syncVar.Name} 请修改为 {HookMethod(hookMethod, syncVar.FieldType)}", syncVar);
@@ -127,8 +142,7 @@ namespace JFramework.Editor
         /// <param name="name"></param>
         /// <param name="valueType"></param>
         /// <returns></returns>
-        private static string HookMethod(string name, TypeReference valueType) =>
-            $"void {name}({valueType} oldValue, {valueType} newValue)";
+        private static string HookMethod(string name, TypeReference valueType) => $"void {name}({valueType} oldValue, {valueType} newValue)";
 
         /// <summary>
         /// 参数配对
@@ -138,8 +152,7 @@ namespace JFramework.Editor
         /// <returns></returns>
         private static bool MatchesParameters(FieldDefinition syncVar, MethodDefinition md)
         {
-            return md.Parameters[0].ParameterType.FullName == syncVar.FieldType.FullName &&
-                   md.Parameters[1].ParameterType.FullName == syncVar.FieldType.FullName;
+            return md.Parameters[0].ParameterType.FullName == syncVar.FieldType.FullName && md.Parameters[1].ParameterType.FullName == syncVar.FieldType.FullName;
         }
 
         /// <summary>
@@ -148,15 +161,19 @@ namespace JFramework.Editor
         /// <param name="td"></param>
         /// <param name="failed"></param>
         /// <returns></returns>
-        public (List<FieldDefinition> syncVars, Dictionary<FieldDefinition, FieldDefinition> syncVarNetIds) ProcessSyncVars(
-            TypeDefinition td, ref bool failed)
+        public FieldDefinitionPair ProcessSyncVars(TypeDefinition td, ref bool failed)
         {
             var syncVars = new List<FieldDefinition>();
             var syncVarIds = new Dictionary<FieldDefinition, FieldDefinition>();
             int dirtyBits = access.GetSyncVar(td.BaseType.FullName);
 
-            foreach (var fd in td.Fields.Where(fd => fd.HasCustomAttribute<SyncVarAttribute>()))
+            foreach (var fd in td.Fields)
             {
+                if (!fd.HasCustomAttribute<SyncVarAttribute>())
+                {
+                    continue;
+                }
+
                 if ((fd.Attributes & FieldAttributes.Static) != 0)
                 {
                     logger.Error($"{fd.Name} 不能是静态字段。", fd);
@@ -197,7 +214,7 @@ namespace JFramework.Editor
 
             int parentSyncVarCount = access.GetSyncVar(td.BaseType.FullName);
             access.SetSyncVar(td.FullName, parentSyncVarCount + syncVars.Count);
-            return (syncVars, syncVarIds);
+            return new FieldDefinitionPair(syncVars, syncVarIds);
         }
 
         /// <summary>
@@ -208,8 +225,7 @@ namespace JFramework.Editor
         /// <param name="syncVarIds"></param>
         /// <param name="dirtyBits"></param>
         /// <param name="failed"></param>
-        private void ProcessSyncVar(TypeDefinition td, FieldDefinition fd, Dictionary<FieldDefinition, FieldDefinition> syncVarIds,
-            long dirtyBits, ref bool failed)
+        private void ProcessSyncVar(TypeDefinition td, FieldDefinition fd, Dictionary<FieldDefinition, FieldDefinition> syncVarIds, long dirtyBits, ref bool failed)
         {
             FieldDefinition objectId = null;
             if (fd.FieldType.IsDerivedFrom<NetworkBehaviour>() || fd.FieldType.Is<NetworkBehaviour>())
@@ -325,8 +341,7 @@ namespace JFramework.Editor
         /// <param name="netFieldId"></param>
         /// <param name="failed"></param>
         /// <returns></returns>
-        private MethodDefinition GenerateSyncVarSetter(TypeDefinition td, FieldDefinition fd, string originalName, long dirtyBit,
-            FieldDefinition netFieldId, ref bool failed)
+        private MethodDefinition GenerateSyncVarSetter(TypeDefinition td, FieldDefinition fd, string originalName, long dirtyBit, FieldDefinition netFieldId, ref bool failed)
         {
             var set = new MethodDefinition($"set_Network{originalName}", Const.VAR_ATTRS, module.Import(typeof(void)));
 

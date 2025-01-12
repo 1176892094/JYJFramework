@@ -11,7 +11,6 @@
 
 using System;
 using System.IO;
-using System.Linq;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Unity.CompilationPipeline.Common.ILPostProcessing;
@@ -32,7 +31,15 @@ namespace JFramework.Editor
 
         private static bool FindAssembly(ICompiledAssembly compiledAssembly)
         {
-            return compiledAssembly.References.Any(path => Path.GetFileNameWithoutExtension(path) == Const.ASSEMBLY);
+            foreach (var path in compiledAssembly.References)
+            {
+                if (Path.GetFileNameWithoutExtension(path) == Const.ASSEMBLY)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public override ILPostProcessResult Process(ICompiledAssembly compiledAssembly)
@@ -58,10 +65,23 @@ namespace JFramework.Editor
             }
 
             var mm = ad.MainModule;
-            if (mm.AssemblyReferences.Any(assembly => assembly.Name == ad.Name.Name))
+            foreach (var nr in mm.AssemblyReferences)
             {
-                var an = mm.AssemblyReferences.First(assembly => assembly.Name == ad.Name.Name);
-                mm.AssemblyReferences.Remove(an);
+                if (nr.Name == ad.Name.Name)
+                {
+                    AssemblyNameReference an = null;
+                    foreach (var assembly in mm.AssemblyReferences)
+                    {
+                        if (assembly.Name == ad.Name.Name)
+                        {
+                            an = assembly;
+                            break;
+                        }
+                    }
+
+                    mm.AssemblyReferences.Remove(an);
+                    break;
+                }
             }
 
             using var pe = new MemoryStream();

@@ -60,7 +60,9 @@ namespace JFramework.Editor
 
             MarkAsProcessed(type);
 
-            (syncVars, syncVarIds) = process.ProcessSyncVars(type, ref failed);
+            var syncPairs = process.ProcessSyncVars(type, ref failed);
+            syncVars = syncPairs.Key;
+            syncVarIds = syncPairs.Value;
 
             ProcessRpcMethods(ref failed);
 
@@ -177,8 +179,8 @@ namespace JFramework.Editor
             {
                 case InvokeMode.ServerRpc:
                     serverRpcList.Add(new KeyValuePair<MethodDefinition, int>(md, rpc.GetField<int>()));
-                    func = NetworkDelegateProcess.ProcessServerRpcInvoke(module, writers, logger, generate, md, rpc, ref failed);
-                    rpcFunc = NetworkDelegateProcess.ProcessServerRpc(module, readers, logger, generate, md, func, ref failed);
+                    func = NetworkAttributeProcess.ProcessServerRpcInvoke(module, writers, logger, generate, md, rpc, ref failed);
+                    rpcFunc = NetworkAttributeProcess.ProcessServerRpc(module, readers, logger, generate, md, func, ref failed);
                     if (rpcFunc != null)
                     {
                         serverRpcFuncList.Add(rpcFunc);
@@ -187,8 +189,8 @@ namespace JFramework.Editor
                     break;
                 case InvokeMode.ClientRpc:
                     clientRpcList.Add(new KeyValuePair<MethodDefinition, int>(md, rpc.GetField<int>()));
-                    func = NetworkDelegateProcess.ProcessClientRpcInvoke(module, writers, logger, generate, md, rpc, ref failed);
-                    rpcFunc = NetworkDelegateProcess.ProcessClientRpc(module, readers, logger, generate, md, func, ref failed);
+                    func = NetworkAttributeProcess.ProcessClientRpcInvoke(module, writers, logger, generate, md, rpc, ref failed);
+                    rpcFunc = NetworkAttributeProcess.ProcessClientRpc(module, readers, logger, generate, md, func, ref failed);
                     if (rpcFunc != null)
                     {
                         clientRpcFuncList.Add(rpcFunc);
@@ -197,8 +199,8 @@ namespace JFramework.Editor
                     break;
                 case InvokeMode.TargetRpc:
                     targetRpcList.Add(new KeyValuePair<MethodDefinition, int>(md, rpc.GetField<int>()));
-                    func = NetworkDelegateProcess.ProcessTargetRpcInvoke(module, writers, logger, generate, md, rpc, ref failed);
-                    rpcFunc = NetworkDelegateProcess.ProcessTargetRpc(module, readers, logger, generate, md, func, ref failed);
+                    func = NetworkAttributeProcess.ProcessTargetRpcInvoke(module, writers, logger, generate, md, rpc, ref failed);
+                    rpcFunc = NetworkAttributeProcess.ProcessTargetRpc(module, readers, logger, generate, md, func, ref failed);
                     if (rpcFunc != null)
                     {
                         targetRpcFuncList.Add(rpcFunc);
@@ -292,7 +294,7 @@ namespace JFramework.Editor
             }
 
             bool connection = param.ParameterType.Is<NetworkClient>();
-            bool sendTarget = NetworkDelegateProcess.IsNetworkClient(param, rpcType);
+            bool sendTarget = NetworkAttributeProcess.IsNetworkClient(param, rpcType);
 
             if (param.IsOut)
             {

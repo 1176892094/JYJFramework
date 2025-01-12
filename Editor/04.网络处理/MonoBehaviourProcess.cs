@@ -9,7 +9,6 @@
 // # Description: This is an automatically generated comment.
 // *********************************************************************************
 
-using System.Linq;
 using JFramework.Net;
 using Mono.Cecil;
 
@@ -37,10 +36,13 @@ namespace JFramework.Editor
         /// <param name="failed"></param>
         private static void ProcessVar(TypeDefinition td, Logger logger, ref bool failed)
         {
-            foreach (var fd in td.Fields.Where(fd => fd.HasCustomAttribute<SyncVarAttribute>()))
+            foreach (var fd in td.Fields)
             {
-                logger.Error($"网络变量 {fd.Name} 必须在 NetworkBehaviour 中使用。", fd);
-                failed = true;
+                if (fd.HasCustomAttribute<SyncVarAttribute>())
+                {
+                    logger.Error($"网络变量 {fd.Name} 必须在 NetworkBehaviour 中使用。", fd);
+                    failed = true;
+                }
             }
         }
 

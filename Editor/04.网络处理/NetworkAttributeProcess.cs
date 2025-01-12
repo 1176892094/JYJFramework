@@ -22,7 +22,7 @@ namespace JFramework.Editor
         TargetRpc,
     }
 
-    internal static class NetworkDelegateProcess
+    internal static class NetworkAttributeProcess
     {
         /// <summary>
         /// ClientRpc方法

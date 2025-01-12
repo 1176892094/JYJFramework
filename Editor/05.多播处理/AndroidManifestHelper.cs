@@ -10,24 +10,18 @@
 // *********************************************************************************
 
 #if UNITY_EDITOR && UNITY_ANDROID
-
 using UnityEditor;
 using UnityEngine;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using System.Xml;
 using System.IO;
-using System.Linq;
 using UnityEditor.Android;
 
 [InitializeOnLoad]
 public class AndroidManifestHelper : IPreprocessBuildWithReport, IPostprocessBuildWithReport, IPostGenerateGradleAndroidProject
 {
     public int callbackOrder => 99999;
-
-    static AndroidManifestHelper()
-    {
-    }
 
     public void OnPostGenerateGradleAndroidProject(string path)
     {
@@ -57,7 +51,18 @@ public class AndroidManifestHelper : IPreprocessBuildWithReport, IPostprocessBui
     private static void AddOrRemoveTag(XmlDocument doc, string uri, string path, string elementName, string name, bool required, bool modifyIfFound, params string[] attrs)
     {
         var nodeList = doc.SelectNodes(path + "/" + elementName);
-        var element = nodeList?.Cast<XmlElement>().FirstOrDefault(xml => name == null || name == xml.GetAttribute("name", uri));
+        XmlElement element = null;
+        if (nodeList != null)
+        {
+            foreach (XmlElement xml in nodeList)
+            {
+                if (name == null || name == xml.GetAttribute("name", uri))
+                {
+                    element = xml;
+                    break;
+                }
+            }
+        }
 
         if (required)
         {

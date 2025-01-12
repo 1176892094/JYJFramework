@@ -233,7 +233,7 @@ namespace JFramework.Editor
             sendClientRpcInternal = Resolve.GetMethod(NetworkBehaviourType, assembly, logger, "SendClientRpcInternal", ref failed);
             sendTargetRpcInternal = Resolve.GetMethod(NetworkBehaviourType, assembly, logger, "SendTargetRpcInternal", ref failed);
 
-            var InvokeType = Import(typeof(NetworkDelegate));
+            var InvokeType = Import(typeof(NetworkAttribute));
             registerServerRpcRef = Resolve.GetMethod(InvokeType, assembly, logger, "RegisterServerRpc", ref failed);
             registerClientRpcRef = Resolve.GetMethod(InvokeType, assembly, logger, "RegisterClientRpc", ref failed);
 

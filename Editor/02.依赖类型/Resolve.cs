@@ -10,7 +10,6 @@
 // *********************************************************************************
 
 using System;
-using System.Linq;
 using Mono.Cecil;
 
 namespace JFramework.Editor
@@ -84,11 +83,6 @@ namespace JFramework.Editor
                 {
                     return ad.MainModule.ImportReference(md);
                 }
-            }
-
-            foreach (var md in tr.Resolve().Methods.Where(func))
-            {
-                return ad.MainModule.ImportReference(md);
             }
 
             log.Error($"在类型 {tr.Name} 中没有找到方法", tr);
